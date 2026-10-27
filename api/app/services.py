@@ -121,21 +121,40 @@ class RequirementUploadService:
         self._upload_directory = Path(upload_directory)
         self._upload_directory.mkdir(parents=True, exist_ok=True)
 
+    def _store_with_unique_name(self, filename: str, content: bytes) -> Path:
+        original_target = self._upload_directory / filename
+        target = original_target
+        suffix_number = 1
+
+        while True:
+            try:
+                destination = target.open("xb")
+            except FileExistsError:
+                target = original_target.with_name(
+                    f"{original_target.stem}-{suffix_number}{original_target.suffix}"
+                )
+                suffix_number += 1
+                continue
+
+            with destination:
+                destination.write(content)
+            return target
+
     async def save(
         self, file: UploadFile, owner: str
     ) -> RequirementUploadResponse:
         safe_filename = safe_requirement_filename(file.filename)
-        target = self._upload_directory / safe_filename
-        if target.resolve().parent != self._upload_directory.resolve():
+        original_target = self._upload_directory / safe_filename
+        if original_target.resolve().parent != self._upload_directory.resolve():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename"
             )
 
         content = await read_requirement_content(file)
-        target.write_bytes(content)
+        target = self._store_with_unique_name(safe_filename, content)
         return RequirementUploadResponse(
             owner=owner,
-            file_name=safe_filename,
+            file_name=target.name,
             stored_at=str(target),
             size=len(content),
         )
