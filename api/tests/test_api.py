@@ -13,7 +13,11 @@ from fastapi.testclient import TestClient
 from app import repository as api_repository
 from app import services as api_services
 from app.main import create_app
-from app.services import MAX_REQUIREMENT_FILE_SIZE_BYTES, safe_requirement_filename
+from app.services import (
+    MAX_REQUIREMENT_FILE_SIZE_BYTES,
+    RequirementUploadService,
+    safe_requirement_filename,
+)
 
 JWT_ALGORITHM = "RS256"
 JWT_ISSUER = "BCP"
@@ -212,6 +216,32 @@ def test_uploads_requirement(tmp_path: Path) -> None:
         "size": len(content),
     }
     assert (upload_dir / "requirements.txt").read_bytes() == content
+
+
+def test_uploads_with_matching_filename_keep_both_users_files(
+    tmp_path: Path,
+) -> None:
+    upload_dir = tmp_path / "uploads"
+    app = create_app(str(tmp_path / "workshop.db"), str(upload_dir))
+    with TestClient(app) as client:
+        first_response = client.post(
+            "/api/requirements",
+            headers=headers("student"),
+            files={"file": ("requirements.txt", b"first user's file", "text/plain")},
+        )
+        second_response = client.post(
+            "/api/requirements",
+            headers=headers("another-user"),
+            files={"file": ("requirements.txt", b"second user's file", "text/plain")},
+        )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    first_upload = first_response.json()
+    second_upload = second_response.json()
+    assert first_upload["fileName"] != second_upload["fileName"]
+    assert Path(first_upload["storedAt"]).read_bytes() == b"first user's file"
+    assert Path(second_upload["storedAt"]).read_bytes() == b"second user's file"
 
 
 def test_accepts_requirement_with_empty_content(tmp_path: Path) -> None:
@@ -439,10 +469,12 @@ def test_returns_500_without_exposing_upload_write_error(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    def fail_write(self: Path, data: bytes) -> int:
+    def fail_store(
+        self: RequirementUploadService, filename: str, content: bytes
+    ) -> Path:
         raise OSError("private filesystem detail")
 
-    monkeypatch.setattr(Path, "write_bytes", fail_write)
+    monkeypatch.setattr(RequirementUploadService, "_store_with_unique_name", fail_store)
     app = create_app(str(tmp_path / "workshop.db"), str(tmp_path / "uploads"))
     with TestClient(app, raise_server_exceptions=False) as client:
         response = client.post(
