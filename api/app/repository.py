@@ -32,7 +32,7 @@ class TaskRepository:
         self.connection.commit()
 
     def list_by_owner(self, owner: str) -> list[sqlite3.Row]:
-        sql = "SELECT id,title,description,status,owner,priority,created_at FROM tasks WHERE owner=? ORDER BY id"
+        sql = "SELECT id,title,description,status,priority,created_at FROM tasks WHERE owner=? ORDER BY id"
         return self.connection.execute(sql, (owner,)).fetchall()
 
     def create_task(

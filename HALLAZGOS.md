@@ -58,3 +58,30 @@ ejecución de pruebas de contrato posterior se registraron **67 tests passed**,
 también con **100% global** (233/233 sentencias y 28/28 ramas), vinculada a
 H-API-01 a H-API-07 en `docs/TESTING.md`. Los comandos y resultados
 históricos por hallazgo permanecen en `PLAN.md`.
+
+## Issues abiertos de GitHub analizados
+
+Consulta de issues abiertos en `user-bcp-studentntt43/ai-labs`, 2026-10-28.
+Los cuerpos se consultaron mediante GitHub CLI; no se modificaron los issues.
+Código local examinado en `day2/skill-mcp`, SHA
+`e360d626ba538308cba3d9cd8ee8fdef60bd1027`.
+
+| id | issue | tipo/componente | hechos y evidencia | estado GitHub | estado análisis |
+|---|---|---|---|---|---|
+| H-API-09 | [#26 — /api/requirements expone la ruta local absoluta en storedAt](https://github.com/user-bcp-studentntt43/ai-labs/issues/26) | Bug reportado / api | `RequirementUploadService.save` serializa `str(target)` en `storedAt` (`api/app/services.py:143-159`); la prueba espera la ruta local completa (`api/tests/test_api.py:201-216`). El contrato también documenta `storedAt` como ruta local (`docs/ENDPOINTS.md:294,303`). | Abierto | Abierto; comportamiento reproducido, impacto y expectativa de contrato pendientes |
+| H-API-10 | [#27 — SQL inyection posible en repository.py](https://github.com/user-bcp-studentntt43/ai-labs/issues/27) | Bug reportado / api | El cuerpo afirma que puede existir inyección SQL, pero no aporta una entrada ni pasos. Las consultas de owner e ID y el `INSERT` revisados usan placeholders (`api/app/repository.py:35-54`); pruebas de apóstrofes y argumentos enlazados (`api/tests/test_api.py:723,741-800`). | Abierto | Abierto; no reproducido; hipótesis sin confirmar por falta de vector específico |
+
+### Comprobaciones de los issues abiertos
+
+Comando local revisado y ejecutado desde `api/`:
+
+```text
+.\.venv\Scripts\python.exe -m pytest -q tests\test_api.py::test_uploads_requirement tests\test_api.py::test_creates_task_with_apostrophes_in_text tests\test_api.py::test_binds_values_in_task_queries --no-cov
+```
+
+Resultado: **3 pruebas pasaron** en el SHA indicado. Para #26, la respuesta devuelve
+la ruta configurada en `storedAt`, como afirma el issue; el resultado esperado de
+no exponerla no está especificado en el contrato vigente, que actualmente la
+documenta. Para #27, las comprobaciones no reprodujeron inyección y observaron
+valores enlazados como parámetros. Como el issue no especifica vector, entrada ni
+pasos, la hipótesis sigue sin confirmar fuera de las consultas cubiertas.
