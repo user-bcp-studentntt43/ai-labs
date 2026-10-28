@@ -42,6 +42,7 @@ crea la tabla y carga datos iniciales (`api/app/main.py:17-27`,
 | H-API-09 | api | Listados y resumen de tareas sin límite de resultados | Riesgo candidato | Las consultas de listado y resumen usan `fetchall()` sin paginación ni límite. Impacto potencial: tiempo, memoria y tamaño de respuesta crecen con todas las tareas del usuario. Contrato potencial: `GET /api/tasks` y `GET /api/summary`; introducir límites o paginación podría cambiar sus respuestas. Validación: cargar un volumen creciente de tareas y medir tiempo/tamaño de respuestas, además de confirmar el contrato funcional. | `api/app/routes.py:26-32,45-51`, `api/app/repository.py:34-36,51-54` | baja | CANDIDATO |
 | H-API-10 | api | Respuesta de backend health se consume sin límite de tamaño | Riesgo candidato | La comprobación obtiene el cuerpo de la respuesta remota y lo decodifica completo para incluirlo en la respuesta, sin límite de bytes. Impacto potencial: una respuesta anormalmente grande aumenta consumo de memoria; bytes no UTF-8 pueden provocar error interno al decodificar. Contrato potencial: `GET /api/backend-health`, que devuelve `status` y `body`. Validación: simular respuestas grandes y bytes no UTF-8 del servicio configurado y observar uso/estado HTTP. | `api/app/services.py:144-162`, contrato `docs/ENDPOINTS.md:321-365` | baja | CANDIDATO |
 
+
 ## Validación
 
 La caracterización inicial del discovery no ejecutó pruebas. Tras H-API-04,
