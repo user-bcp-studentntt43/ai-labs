@@ -282,6 +282,9 @@ Internal Server Error
    El servidor normaliza el nombre recibido a un basename antes de guardar;
    `file.filename` no se usa directamente como ruta
    (`api/app/services.py:33-49,124-133`).
+   Si ya existe un archivo con ese nombre, conserva el archivo existente y
+   guarda la nueva carga con un nombre diferenciado; `fileName` y `storedAt`
+   reflejan el nombre y la ruta asignados.
 4. **Response exitosa:** `201 Created`. Campos:
 
    | Campo | Tipo | Descripción |
