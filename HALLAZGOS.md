@@ -63,13 +63,15 @@ históricos por hallazgo permanecen en `PLAN.md`.
 
 Consulta de issues abiertos en `user-bcp-studentntt43/ai-labs`, 2026-10-28.
 Los cuerpos se consultaron mediante GitHub CLI; no se modificaron los issues.
-Código local examinado en `day2/skill-mcp`, SHA
-`e360d626ba538308cba3d9cd8ee8fdef60bd1027`.
+H-API-09 y H-API-10 se examinaron en `day2/skill-mcp`, SHA
+`e360d626ba538308cba3d9cd8ee8fdef60bd1027`. H-API-11 se examinó en la misma
+rama, SHA `3b3542f7f521a2ea33a138252dc9d28ef6d55879`.
 
 | id | issue | tipo/componente | hechos y evidencia | estado GitHub | estado análisis |
 |---|---|---|---|---|---|
 | H-API-09 | [#26 — /api/requirements expone la ruta local absoluta en storedAt](https://github.com/user-bcp-studentntt43/ai-labs/issues/26) | Bug reportado / api | `RequirementUploadService.save` serializa `str(target)` en `storedAt` (`api/app/services.py:143-159`); la prueba espera la ruta local completa (`api/tests/test_api.py:201-216`). El contrato también documenta `storedAt` como ruta local (`docs/ENDPOINTS.md:294,303`). | Abierto | Abierto; comportamiento reproducido, impacto y expectativa de contrato pendientes |
 | H-API-10 | [#27 — SQL inyection posible en repository.py](https://github.com/user-bcp-studentntt43/ai-labs/issues/27) | Bug reportado / api | El cuerpo afirma que puede existir inyección SQL, pero no aporta una entrada ni pasos. Las consultas de owner e ID y el `INSERT` revisados usan placeholders (`api/app/repository.py:35-54`); pruebas de apóstrofes y argumentos enlazados (`api/tests/test_api.py:723,741-800`). | Abierto | Abierto; no reproducido; hipótesis sin confirmar por falta de vector específico |
+| H-API-11 | [#29 — Error en campos owner no incluido](https://github.com/user-bcp-studentntt43/ai-labs/issues/29) | Bug reportado / api | `list_by_owner` omite `owner` del `SELECT` (`api/app/repository.py:34-36`), mientras `_as_task` intenta leer `row["owner"]` (`api/app/services.py:107-114`). La prueba del listado espera `owner` en cada tarea (`api/tests/test_api.py:676-690`); contrato HTTP declara el campo (`docs/ENDPOINTS.md:76-82`). | Abierto | Abierto; reproducción confirmada en el SHA indicado |
 
 ### Comprobaciones de los issues abiertos
 
@@ -85,3 +87,22 @@ no exponerla no está especificado en el contrato vigente, que actualmente la
 documenta. Para #27, las comprobaciones no reprodujeron inyección y observaron
 valores enlazados como parámetros. Como el issue no especifica vector, entrada ni
 pasos, la hipótesis sigue sin confirmar fuera de las consultas cubiertas.
+
+### Reproducción del issue #29
+
+Pasos locales: crear una app de prueba con base SQLite temporal y realizar el
+listado autenticado de tareas del owner `student`, como hace la prueba
+`test_allows_listing_tasks_for_authenticated_owner`.
+
+Comando revisado y ejecutado desde `api/`:
+
+```text
+.\.venv\Scripts\python.exe -m pytest -q tests\test_api.py::test_allows_listing_tasks_for_authenticated_owner --no-cov
+```
+
+Resultado observado: la prueba falla con `IndexError: No item with that key`
+en `api/app/services.py:113`, al intentar serializar `owner`. Resultado
+esperado según el issue, el test y el contrato HTTP: respuesta `200` con las
+tareas del usuario y su campo `owner`. La consulta en
+`api/app/repository.py:35` no selecciona ese campo, lo que respalda el fallo
+observado. No se modificó código ni se instalaron dependencias.
